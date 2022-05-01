@@ -1,22 +1,39 @@
 
+### TL;DR
 
+This project exists because I wanted to learn how to do it. It is inferior to existing DI solutions such as Autofac in every way. I would not (and do not) use 
+this in production environements - again, there are better alternatives.
 
+The design decisions are largely based on the type of API I wanted to learn about, rather than any real-world considerations.
 
-## Container Builder
+### Why is this necessary?
 
-When adding a Singleton to the container it makes sense to not allow the user to add an instance if they have previously created a Typed singleton.
+### Container vs ContainerBuilder
 
-```C#
-var builder = new ContainerBuilder();
+### Fluent API Design vs Classic API Design
 
-// Add a Singleton that will be create on first use
-builder.AddSingleton<MyService>();
+It is reasonable to choose either a Fluent API design (like Autofac) or a Classic API design (like Microsofts DI). In this project we will choose a Fluent API
+for the simple (and slightly less _valid_) reason that I would like to learn how.
 
-// Exception: The type MyService has already been registered as a singleton
-builder.AddSingleton<MyService>(new MyService());
-```
+### Single Implementation vs Multiple Implementations
 
-While it is technically feasable to add the instance to the container in the above example, it is not recommended as the behaviour will vary depending
-on the prior usage.
+An argument can be made for restricting the container to only a single concrete implementation for a Type / Interface vs allowing multiple implementations.
 
-We can reconsider this if a use case arises.
+#### Single Implementation
+
+Pros:
+ - Easier to reason about
+ - Simpler Implementation of Type Resolution
+
+Cons:
+ - Harder to override behaviour at runtime
+
+#### Multiple Implementations
+
+Pros:
+ - 
+
+Cons:
+ - 
+
+For this project we will be allowing for Multiple Implementations.
