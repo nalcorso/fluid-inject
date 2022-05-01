@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32414.318
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3688E705-8B9C-4DB3-849C-2ADD06E54978}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "fluid.inject", "src\fluid.inject\fluid.inject.csproj", "{462F1D53-7365-4482-83F1-B367A50E294B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "fluid.inject.tests", "tests\fluid.inject.tests\fluid.inject.tests.csproj", "{DDDADB65-3F4C-415B-9239-6A39AF469E54}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{2979DCEA-F9CB-4369-B391-F34597EFCB1C}"
+	ProjectSection(SolutionItems) = preProject
+		docs\Design Decisions.md = docs\Design Decisions.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{2B0C61FF-1BB0-4E87-AB9B-52DA94841633}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "fluid.inject.console", "samples\fluid.inject.console\fluid.inject.console.csproj", "{4669BFC0-61B5-4266-B619-100D03DF0F21}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{462F1D53-7365-4482-83F1-B367A50E294B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{462F1D53-7365-4482-83F1-B367A50E294B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{462F1D53-7365-4482-83F1-B367A50E294B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{462F1D53-7365-4482-83F1-B367A50E294B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DDDADB65-3F4C-415B-9239-6A39AF469E54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DDDADB65-3F4C-415B-9239-6A39AF469E54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DDDADB65-3F4C-415B-9239-6A39AF469E54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DDDADB65-3F4C-415B-9239-6A39AF469E54}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4669BFC0-61B5-4266-B619-100D03DF0F21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4669BFC0-61B5-4266-B619-100D03DF0F21}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4669BFC0-61B5-4266-B619-100D03DF0F21}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4669BFC0-61B5-4266-B619-100D03DF0F21}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4669BFC0-61B5-4266-B619-100D03DF0F21} = {2B0C61FF-1BB0-4E87-AB9B-52DA94841633}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4F657115-3B1C-471E-8B29-227347C0685D}
+	EndGlobalSection
+EndGlobal
