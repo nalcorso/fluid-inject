@@ -8,25 +8,31 @@ Console.WriteLine("FLUiD Inject - Console Example");
 // 1. Create a Container. This is the root of the dependency injection tree.
 IContainer container = new Container();
 
-container.Add<MyObject>();
-container.Add<MyService>();
-container.Add<MyBaseService>();
-
 // Example - Resolve a dependency manually.
+container.Add<MyBaseService>();
 var my_base_service = container.Get<MyBaseService>();
 
 // Example - Resolve and use a factory method.
+container.Add<MyObject>();
 var my_object_factory = container.Get<MyObject.Factory>();
-var my_object = my_object_factory(1, "ABC");
+_ = my_object_factory(1, "ABC");
 
 // Example - Resolve a dependency that uses a factory method.
+container.Add<MyService>();
 var my_service = container.Get<MyService>();
 my_service.Add(1, "ABC");
 
-// The following features have not been implemented in the API yet.
-
 // Example - Resolve a named dependency.
-//var my_named_service = container.Get<MyService>("named");
+container.Add<TestCommand1>().As<ICommand>().AsTransient().WithName("Test1Command");
+container.Add<TestCommand2>().As<ICommand>().AsTransient().WithName("Test2Command");
+
+var test_command1 = container.Get<ICommand>("Test1Command");
+test_command1.Execute();
+
+var test_command2 = container.Get<ICommand>("Test2Command");
+test_command2.Execute();
+
+// The following features have not been implemented in the API yet.
 
 // Example - Add assembly as Module. Calls the assembly's Register / Unregister method.
 //var assembly = typeof(MyService).Assembly;
