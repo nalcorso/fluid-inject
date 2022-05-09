@@ -2,7 +2,7 @@
 
 namespace Fluid.Inject;
 
-internal enum TypeLifetime
+public enum Lifetime
 {
     Singleton,
     Transient
