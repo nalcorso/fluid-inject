@@ -33,12 +33,12 @@ public class Container : IContainer
 
     public T Get<T>()
     {
-        return (T)Resolve(typeof(T));
+        return (T)Resolve(typeof(T), null);
     }
 
     public T Get<T>(string name)
     {
-        throw new NotImplementedException();
+        return (T)Resolve(typeof(T), name);
     }
 
     private bool CanResolveType(Type type)
@@ -105,6 +105,10 @@ public class Container : IContainer
         var delegate_type = type;
 
         var method = delegate_type.GetMethod("Invoke");
+
+        if (method is null)
+            throw new InvalidOperationException("Delegate type must have an Invoke method");
+
         var delegate_parameters = new List<ParameterExpression>();
 
         foreach (var param in method.GetParameters())
@@ -140,7 +144,7 @@ public class Container : IContainer
         return Expression.Lambda(delegate_type, constructor, delegate_parameters).Compile();
     }
 
-    private object Resolve(Type type)
+    private object Resolve(Type type, string? name)
     {
         if (type.IsDelegate())
             return BuildFactoryExpression(type);
@@ -151,7 +155,7 @@ public class Container : IContainer
         if ((type == typeof(IContainer)) || (type == typeof(Container)))
             return this;
 
-        var descriptor = _types.First(t => (t.ConcreteType == type) || (t.InterfaceType == type));
+        var descriptor = name is null ? _types.First(t => (t.ConcreteType == type) || (t.InterfaceType == type)) : _types.First(t => ((t.ConcreteType == type) || (t.InterfaceType == type)) && (t.Name == name));
 
         if (descriptor is null || descriptor.ConcreteType is null)
             throw new TypeNotRegisteredException(type);
@@ -164,7 +168,7 @@ public class Container : IContainer
             var new_instance = Activator.CreateInstance(descriptor.ConcreteType) ?? throw new InvalidOperationException("Could not create instance of type");
 
             if (descriptor.Lifetime == Lifetime.Singleton)
-                descriptor.WithInstance(new_instance);
+                _ = descriptor.WithInstance(new_instance);
 
             return new_instance;
         }
@@ -181,7 +185,7 @@ public class Container : IContainer
             var new_instance = Activator.CreateInstance(descriptor.ConcreteType) ?? throw new InvalidOperationException("Could not create instance of type");
 
             if (descriptor.Lifetime == Lifetime.Singleton)
-                descriptor.WithInstance(new_instance);
+                _ = descriptor.WithInstance(new_instance);
 
             return new_instance;
         }
@@ -190,7 +194,7 @@ public class Container : IContainer
 
         for (var i = 0; i < parameters.Length; i++)
         {
-            args[i] = Resolve(parameters[i].ParameterType);
+            args[i] = Resolve(parameters[i].ParameterType, null);
         }
 
         var instance = Activator.CreateInstance(descriptor.ConcreteType, args) ?? throw new InvalidOperationException("Could not create instance of type");
@@ -198,7 +202,7 @@ public class Container : IContainer
         if (descriptor.Lifetime == Lifetime.Singleton)
 
             // FIXME - We probably don't need to use the public interface of TypeDescriptor to set the instance.
-            descriptor.WithInstance(instance);
+            _ = descriptor.WithInstance(instance);
 
         return instance;
     }
