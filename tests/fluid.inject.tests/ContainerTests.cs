@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2022, Nick Alcorso <nalcorso@gmail.com>
+﻿// // Copyright (c) 2022, Nick Alcorso <nalcorso@gmail.com>
 
 namespace Fluid.Inject.Tests;
 
@@ -6,6 +6,49 @@ namespace Fluid.Inject.Tests;
 public class ContainerTests
 {
     [TestMethod]
+    public void ContainerTests_Add_ReturnsMutableInstance()
+    {
+        var container = new Container();
+
+        var descriptor = container.Add<TestableService>();
+        container.Types.Count().Should().Be(1);
+        descriptor.Should().BeSameAs(container.Types.First());
+    }
+
+    [TestMethod]
+    public void ContainerTests_Add_ChainedConfigurationReturnsSameMutableInstance()
+    {
+        var container = new Container();
+
+        var descriptor1 = container.Add<TestableService>();
+        descriptor1.Should().BeSameAs(container.Types.First());
+
+        var descriptor2 = descriptor1.As<ITestableService>();
+        descriptor2.Should().BeSameAs(descriptor1);
+
+        var descriptor3 = descriptor2.AsTransient();
+        descriptor3.Should().BeSameAs(descriptor2);
+
+        var descriptor4 = descriptor3.WithName("ServiceName");
+        descriptor4.Should().BeSameAs(descriptor3);
+    }
+
+    [TestMethod]
+    public void ContainerTests_Add_ChainedConfigurationShouldReturnExpected()
+    {
+        var container = new Container();
+
+        _ = container.Add<TestableService>().As<ITestableService>().AsTransient().WithName("ServiceName");
+
+        container.Types.Count().Should().Be(1);
+        container.Types.First().ConcreteType.Should().Be(typeof(TestableService));
+        container.Types.First().InterfaceType.Should().Be(typeof(ITestableService));
+        container.Types.First().Lifetime.Should().Be(Lifetime.Transient);
+        container.Types.First().Name.Should().Be("ServiceName");
+    }
+
+#region Obsolete Test Methods
+    /*[TestMethod]
     public void Container_Construction_ShouldSucceed()
     {
         var container = new Container();
@@ -158,7 +201,7 @@ public class ContainerTests
 
         container.Invoking(c => c.AddTransient<TestableService>()).Should().Throw<ArgumentException>();
         container.Invoking(c => c.AddTransient<ITestableService, TestableService>()).Should().Throw<ArgumentException>();
-    }
+    }*/
 
     /*[TestMethod]
     public void Container_RegisterSingleton_ShouldRegisterSingletonWithName()
@@ -178,7 +221,7 @@ public class ContainerTests
         container.Resolve<TransientTestService>("test").Should().NotBeNull();
     }*/
 
-    [TestMethod]
+    /*[TestMethod]
     public void Container_Get_GetMissingTypeShouldThrow()
     {
         var container = new Container();
@@ -288,4 +331,6 @@ public class ContainerTests
         var service2 = container.Get<TestableServiceDependency1>();
         service1.ServiceId.Should().Be(service2.ServiceId);
     }
+    */
+#endregion
 }
