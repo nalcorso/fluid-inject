@@ -4,12 +4,14 @@ namespace Fluid.Inject.Tests.MockServices;
 
 public class TestableServiceWithTypedDependency
 {
-    private readonly TestableServiceDependency1 _dependency1;
+    public TestableServiceDependency1 Dependency1 { get; }
+    public TestableServiceDependency2 Dependency2 { get; }
 
-    public Guid ServiceId => _dependency1.ServiceId;
+    public Guid ServiceId => Dependency1.ServiceId;
 
-    public TestableServiceWithTypedDependency(TestableServiceDependency1 dependency1)
+    public TestableServiceWithTypedDependency(TestableServiceDependency1 dependency1, TestableServiceDependency2 dependency2)
     {
-        _dependency1 = dependency1;
+        Dependency1 = dependency1;
+        Dependency2 = dependency2;
     }
 }

@@ -1,7 +1,5 @@
 ﻿// Copyright (c) 2022, Nick Alcorso <nalcorso@gmail.com>
 
-using System.Collections.Generic;
-
 namespace Fluid.Inject.Tests;
 
 [TestClass]
@@ -146,6 +144,9 @@ public class TypeDescriptorTests
 
         Action construction2 = () => new TypeDescriptor(typeof(TestableService)).As<IEnumerable<string>>();
         construction2.Should().Throw<ArgumentException>();
+
+        Action construction3 = () => new TypeDescriptor(new TestableService()).As<IUnrelatedService>();
+        construction3.Should().Throw<ArgumentException>();
     }
 
     [TestMethod]
@@ -199,6 +200,52 @@ public class TypeDescriptorTests
     public void TypeDescriptor_AsTransient_InvalidCallShouldThrow()
     {
         Action construction = () => new TypeDescriptor(new TestableService()).AsTransient();
+        construction.Should().Throw<InvalidOperationException>();
+    }
+
+    [TestMethod]
+    public void TypeDescriptor_WithInstance_ValidCallShouldNotThrow()
+    {
+        Action construction = () => new TypeDescriptor(typeof(TestableService)).WithInstance(new TestableService());
+        construction.Should().NotThrow();
+    }
+
+    [TestMethod]
+    public void TypeDescriptor_WithInstance_ValidCallShouldReturnExpected()
+    {
+        var instance = new TestableService();
+        var descriptor = new TypeDescriptor(typeof(TestableService)).WithInstance(instance);
+        descriptor.ConcreteType.Should().Be(typeof(TestableService));
+        descriptor.Lifetime.Should().Be(Lifetime.Singleton);
+        descriptor.Instance.Should().BeSameAs(instance);
+    }
+
+    [TestMethod]
+    public void TypeDescriptor_WithInstance_RedundantCallShouldThrow()
+    {
+        Action construction = () => new TypeDescriptor(new TestableService()).WithInstance(new TestableService());
+        construction.Should().Throw<InvalidOperationException>();
+    }
+
+    [TestMethod]
+    public void TypeDescriptor_WithInstance_TypeMismatchShouldThrow()
+    {
+        Action construction = () => new TypeDescriptor(typeof(TestableService)).WithInstance(new UnrelatedService());
+        construction.Should().Throw<ArgumentException>();
+    }
+
+    [TestMethod]
+    public void TypeDescriptor_WithInstance_NullInstanceShouldThrow()
+    {
+        Action construction = () => new TypeDescriptor(typeof(TestableService)).WithInstance(null!);
+        construction.Should().Throw<ArgumentNullException>();
+    }
+
+    [TestMethod]
+    public void TypeDescriptor_WithInstance_InvalidLifetimeShouldThrow()
+    {
+        // Note: This test will become redundant when we add support for the Interface State Machine.
+        Action construction = () => new TypeDescriptor(typeof(TestableService)).AsTransient().WithInstance(new TestableService());
         construction.Should().Throw<InvalidOperationException>();
     }
 

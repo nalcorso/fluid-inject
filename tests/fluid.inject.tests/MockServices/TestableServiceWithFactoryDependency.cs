@@ -4,10 +4,10 @@ namespace Fluid.Inject.Tests.MockServices;
 
 public class TestableServiceWithFactoryDependency
 {
-    private readonly TestableServiceWithFactory.Factory _testable_service_factory;
+    public readonly TestableServiceWithFactory.Factory Factory;
 
     public TestableServiceWithFactoryDependency(TestableServiceWithFactory.Factory testable_service_factory)
     {
-        _testable_service_factory = testable_service_factory;
+        Factory = testable_service_factory;
     }
 }

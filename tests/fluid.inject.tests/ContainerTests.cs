@@ -1,10 +1,17 @@
-﻿// // Copyright (c) 2022, Nick Alcorso <nalcorso@gmail.com>
+﻿// Copyright (c) 2022, Nick Alcorso <nalcorso@gmail.com>
 
 namespace Fluid.Inject.Tests;
 
 [TestClass]
 public class ContainerTests
 {
+    [TestMethod]
+    public void Container_Construction_ShouldSucceed()
+    {
+        var container = new Container();
+        container.Should().NotBeNull();
+    }
+
     [TestMethod]
     public void ContainerTests_Add_ReturnsMutableInstance()
     {
@@ -47,104 +54,179 @@ public class ContainerTests
         container.Types.First().Name.Should().Be("ServiceName");
     }
 
+    [TestMethod]
+    public void ContainerTests_Add_WithInstanceShouldReturnExpected()
+    {
+        var container = new Container();
+        var service = new TestableService();
+
+        _ = container.Add(service).As<ITestableService>().WithName("ServiceName");
+
+        container.Types.Count().Should().Be(1);
+        container.Types.First().ConcreteType.Should().Be(typeof(TestableService));
+        container.Types.First().InterfaceType.Should().Be(typeof(ITestableService));
+        container.Types.First().Instance.Should().BeSameAs(service);
+        container.Types.First().Lifetime.Should().Be(Lifetime.Singleton);
+        container.Types.First().Name.Should().Be("ServiceName");
+    }
+
+    [TestMethod]
+    public void ContainerTests_Get_TransientServiceShouldReturnNewInstance()
+    {
+        var container = new Container();
+        _ = container.Add<TestableService>().As<ITestableService>().AsTransient();
+
+        var service1 = container.Get<ITestableService>();
+        var service2 = container.Get<ITestableService>();
+
+        service1.Should().NotBeSameAs(service2);
+    }
+
+    [TestMethod]
+    public void ContainerTests_Get_SingletonServiceShouldReturnSameInstance()
+    {
+        var container = new Container();
+        _ = container.Add<TestableService>().As<ITestableService>().AsSingleton();
+
+        var service1 = container.Get<ITestableService>();
+        var service2 = container.Get<ITestableService>();
+
+        service1.Should().BeSameAs(service2);
+    }
+
+    [TestMethod]
+    public void ContainerTests_Get_ServiceWithDependenciesShouldReturnExpected()
+    {
+        var container = new Container();
+
+        _ = container.Add<TestableServiceDependency1>().As<ITestableServiceDependency1>().AsSingleton();
+        _ = container.Add<TestableServiceDependency2>().As<ITestableServiceDependency2>().AsSingleton();
+        _ = container.Add<TestableServiceWithTypedDependency>().AsSingleton();
+        _ = container.Add<TestableServiceWithInterfaceDependency>().AsTransient();
+
+        var service1 = container.Get<TestableServiceWithTypedDependency>();
+
+        service1.Dependency1.Should().BeOfType<TestableServiceDependency1>();
+
+        var service2 = container.Get<TestableServiceWithInterfaceDependency>();
+
+        service2.Dependency1.Should().BeOfType<TestableServiceDependency1>();
+
+        service1.Dependency1.Should().BeSameAs(service2.Dependency1);
+    }
+
+    [TestMethod]
+    public void ContainerTests_Get_ServiceWithImplicitDependenciesShouldReturnExpected()
+    {
+        var container = new Container();
+
+        _ = container.Add<TestableServiceWithImplicitDependencies>().AsTransient();
+
+        var service = container.Get<TestableServiceWithImplicitDependencies>();
+
+        service.Should().NotBeNull();
+        service.Container.Should().BeOfType<Container>();
+        service.Container.Should().BeSameAs(container);
+    }
+
+    [TestMethod]
+    public void ContainerTests_Get_ServiceWithFactoryShouldReturnExpected()
+    {
+        var container = new Container();
+
+        _ = container.Add<TestableServiceWithFactory>().AsTransient();
+
+        var service = container.Get<TestableServiceWithFactory.Factory>();
+        service.Should().NotBeNull();
+        service.GetType().Should().Be(typeof(TestableServiceWithFactory.Factory));
+    }
+
+    [TestMethod]
+    public void ContainerTests_Get_ServiceWithFactoryDependencyShouldReturnExpected()
+    {
+        var container = new Container();
+
+        _ = container.Add<TestableServiceWithFactoryDependency>().AsTransient();
+        _ = container.Add<TestableServiceWithFactory>().AsTransient();
+
+        var service = container.Get<TestableServiceWithFactoryDependency>();
+        service.Should().NotBeNull();
+        service.Factory.Should().NotBeNull();
+        service.Factory.Should().BeOfType<TestableServiceWithFactory.Factory>();
+    }
+
+    [TestMethod]
+    public void ContainerTests_Get_ServiceWithFactoryAndDependenciesShouldReturnExpected()
+    {
+        var container = new Container();
+
+        _ = container.Add<TestableServiceDependency1>().AsTransient();
+        _ = container.Add<TestableServiceDependency2>().AsTransient();
+        _ = container.Add<TestableServiceWithFactoryAndDependencies>().AsTransient();
+
+        var service = container.Get<TestableServiceWithFactoryAndDependencies.Factory>();
+        service.Should().NotBeNull();
+
+        var instance = service(42, "Foo");
+
+        instance.Should().NotBeNull();
+        instance.Dependency1.Should().BeOfType<TestableServiceDependency1>();
+        instance.Dependency2.Should().BeOfType<TestableServiceDependency2>();
+        instance.Dependency1.Should().NotBeSameAs(instance.Dependency2);
+        instance.Index.Should().Be(42);
+        instance.Name.Should().Be("Foo");
+    }
+
+    [TestMethod]
+    public void ContainerTests_Get_ServiceWithMissingDependencyShouldThrow()
+    {
+        var container = new Container();
+
+        _ = container.Add<TestableServiceWithTypedDependency>().AsTransient();
+
+        Action get_action = () => container.Get<TestableServiceWithTypedDependency>();
+        get_action.Should().Throw<InvalidOperationException>();
+    }
+
+    [TestMethod]
+    public void ContainerTests_Get_ServiceWithInvalidDependencyShouldThrow()
+    {
+        var container = new Container();
+
+        _ = container.Add<TestableServiceWithInvalidDependencies>().AsTransient();
+
+        Action get_action = () => container.Get<TestableServiceWithInvalidDependencies>();
+        get_action.Should().Throw<InvalidOperationException>();
+    }
+
+    [TestMethod]
+    public void ContainerTests_Get_FactoryWithIncorrectSignatureShouldThrow()
+    {
+        var container = new Container();
+
+        _ = container.Add<TestableServiceWithInvalidFactory>().AsTransient();
+
+        Action get_action = () => container.Get<TestableServiceWithInvalidFactory>();
+        get_action.Should().Throw<InvalidOperationException>();
+    }
+
+    [TestMethod]
+    public void ContainerTests_Get_InvalidTypesShouldThrow()
+    {
+        var container = new Container();
+
+        Action get_action1 = () => container.Get<UnrelatedService>();
+        get_action1.Should().Throw<ArgumentException>();
+
+        Action get_action2 = () => container.Get<string>();
+        get_action2.Should().Throw<ArgumentException>();
+    }
+
 #region Obsolete Test Methods
-    /*[TestMethod]
-    public void Container_Construction_ShouldSucceed()
-    {
-        var container = new Container();
-        container.Should().NotBeNull();
-    }
+    /*
 
-    [TestMethod]
-    public void Container_Creation_ShouldAllowProceduralInitialisation()
-    {
-        var container = new Container();
-        container.AddSingleton<TestableService>();
 
-        container.Has(typeof(TestableService)).Should().BeTrue();
-    }
 
-    [TestMethod]
-    public void Container_Creation_ShouldAllowFluentInitialisation()
-    {
-        var container = new Container().AddSingleton<TestableService>();
-
-        container.Has(typeof(TestableService)).Should().BeTrue();
-    }
-
-    [TestMethod]
-    public void Container_AddSingleton_NullInstanceShouldThrow()
-    {
-        var container = new Container();
-
-        container.Invoking(c => c.AddSingleton<ITestableService>(null!)).Should().Throw<ArgumentNullException>();
-        container.Invoking(c => c.AddSingleton<TestableService>(null!)).Should().Throw<ArgumentNullException>();
-    }
-
-    [TestMethod]
-    public void Container_AddSingleton_InterfaceWithoutInstanceShouldThrow()
-    {
-        var container = new Container();
-
-        container.Invoking(c => c.AddSingleton<ITestableService>()).Should().Throw<ArgumentException>();
-    }
-
-    [TestMethod]
-    public void Container_AddSingleton_ShouldRegisterSingletonFromInstance()
-    {
-        var container = new Container().AddSingleton(new TestableService());
-
-        container.Has(typeof(TestableService)).Should().BeTrue();
-    }
-
-    [TestMethod]
-    public void Container_AddSingleton_ShouldRegisterSingletonFromInstanceWithInterface()
-    {
-        var container = new Container().AddSingleton<ITestableService>(new TestableService());
-
-        container.Has(typeof(TestableService)).Should().BeTrue();
-        container.Has(typeof(ITestableService)).Should().BeTrue();
-        container.Has(typeof(ITestableService), typeof(TestableService)).Should().BeTrue();
-    }
-
-    [TestMethod]
-    public void Container_AddSingleton_ShouldRegisterSingletonFromType()
-    {
-        var container = new Container().AddSingleton<TestableService>();
-
-        container.Has(typeof(TestableService)).Should().BeTrue();
-    }
-
-    [TestMethod]
-    public void Container_AddSingleton_ShouldRegisterSingletonFromTypeWithInterface()
-    {
-        var container = new Container().AddSingleton<ITestableService, TestableService>();
-
-        container.Has(typeof(TestableService)).Should().BeTrue();
-        container.Has(typeof(ITestableService)).Should().BeTrue();
-        container.Has(typeof(ITestableService), typeof(TestableService)).Should().BeTrue();
-    }
-
-    [TestMethod]
-    public void Container_AddSingleton_AddingInstanceOfExistingTypeShouldThrow()
-    {
-        var container = new Container().AddSingleton(new TestableService());
-
-        container.Invoking(c => c.AddSingleton(new TestableService())).Should().Throw<ArgumentException>();
-        container.Invoking(c => c.AddSingleton<ITestableService>(new TestableService())).Should().Throw<ArgumentException>();
-        container.Invoking(c => c.AddSingleton<TestableService>()).Should().Throw<ArgumentException>();
-        container.Invoking(c => c.AddSingleton<ITestableService, TestableService>()).Should().Throw<ArgumentException>();
-    }
-
-    [TestMethod]
-    public void Container_AddSingleton_AddingExistingTypeShouldThrow()
-    {
-        var container = new Container().AddSingleton<TestableService>();
-
-        container.Invoking(c => c.AddSingleton(new TestableService())).Should().Throw<ArgumentException>();
-        container.Invoking(c => c.AddSingleton<TestableService>()).Should().Throw<ArgumentException>();
-        container.Invoking(c => c.AddSingleton<ITestableService, TestableService>()).Should().Throw<ArgumentException>();
-    }
 
     [TestMethod]
     public void Container_AddSingleton_AddingExistingTypeWithInterfaceShouldThrow()
