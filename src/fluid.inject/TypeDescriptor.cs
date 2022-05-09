@@ -2,93 +2,137 @@
 
 namespace Fluid.Inject;
 
-internal class TypeDescriptor
+//FIXME - Use a single monolithic interface until we are happy with the API. Ultimately we want to migrate to a state machine (of interfaces).
+public interface ITypeDescriptor
 {
-    public Type? InterfaceType { get; init; }
-    public Type InstanceType { get; init; }
-    public object? Instance { get; set; }
+    Type? ConcreteType { get; }
+    object? Instance { get; }
+    Type? InterfaceType { get; }
+    Lifetime? Lifetime { get; }
+    string? Name { get; }
 
-    public TypeLifetime Lifetime { get; init; }
+    ITypeDescriptor As<TInterface>();
+    ITypeDescriptor AsSingleton();
+    ITypeDescriptor AsTransient();
+    ITypeDescriptor WithName(string name);
+}
 
-    //public bool IsConstructable => false;
+public class TypeDescriptor : ITypeDescriptor
+{
+    public Type? ConcreteType { get; init; }
+    public object? Instance { get; private set; }
+    public Type? InterfaceType { get; private set; }
+    public Lifetime? Lifetime { get; private set; }
+    public string? Name { get; private set; }
 
-    public TypeDescriptor(object instance, TypeLifetime lifetime)
+    public TypeDescriptor(Type concrete_type)
     {
-        ArgumentNullException.ThrowIfNull(instance, nameof(instance));
+        ArgumentNullException.ThrowIfNull(concrete_type, nameof(concrete_type));
 
-        if (instance.GetType().IsValueType)
-            throw new ArgumentException("Cannot create a type descriptor for a value type");
-
-        if (instance.GetType().FullName!.StartsWith("System."))
-            throw new ArgumentException("Cannot create a type descriptor for a system type");
-
-        if (lifetime == TypeLifetime.Transient)
-            throw new ArgumentException("Transient instances cannot be constructed");
-
-        InstanceType = instance.GetType();
-        Instance = instance;
-        Lifetime = lifetime;
-    }
-
-    public TypeDescriptor(Type interface_type, object instance, TypeLifetime lifetime)
-    {
-        ArgumentNullException.ThrowIfNull(instance, nameof(instance));
-        ArgumentNullException.ThrowIfNull(interface_type, nameof(interface_type));
-
-        if (instance.GetType().IsValueType)
-            throw new ArgumentException("Cannot create a type descriptor for a value type");
-
-        if (instance.GetType().FullName!.StartsWith("System."))
-            throw new ArgumentException("Cannot create a type descriptor for a system type");
-
-        if (!interface_type.IsInterface)
-            throw new ArgumentException("Type must be an interface");
-
-        if (!instance.GetType().GetInterfaces().Contains(interface_type))
-            throw new ArgumentException("The instance type must implement the interface type");
-
-        if (lifetime == TypeLifetime.Transient)
-            throw new ArgumentException("Transient instances cannot be constructed");
-
-        InterfaceType = interface_type;
-        InstanceType = instance.GetType();
-        Instance = instance;
-        Lifetime = lifetime;
-    }
-
-    public TypeDescriptor(Type instance_type, TypeLifetime lifetime)
-    {
-        ArgumentNullException.ThrowIfNull(instance_type, nameof(instance_type));
-
-        if (instance_type.FullName!.StartsWith("System."))
-            throw new ArgumentException("Cannot create a type descriptor for a system type");
-
-        if (instance_type.IsValueType)
-            throw new ArgumentException("Cannot create a type descriptor for a value type");
-
-        if (!instance_type.IsClass)
+        if (!concrete_type.IsClass)
             throw new ArgumentException("Type must be a class");
 
-        InstanceType = instance_type;
-        Lifetime = lifetime;
+        if (concrete_type.IsAbstract)
+            throw new ArgumentException("Type may not be abstract");
+
+        if (concrete_type.GetMethods().Any(m => m.Name == "<Clone>$"))
+            throw new ArgumentException("Type may not be a record");
+
+        if (concrete_type.FullName!.StartsWith("System."))
+            throw new ArgumentException("Type may not be a system type");
+
+        ConcreteType = concrete_type;
     }
 
-    public TypeDescriptor(Type interface_type, Type instance_type, TypeLifetime lifetime)
+    public TypeDescriptor(object instance)
     {
-        ArgumentNullException.ThrowIfNull(interface_type, nameof(interface_type));
-        ArgumentNullException.ThrowIfNull(instance_type, nameof(instance_type));
+        ArgumentNullException.ThrowIfNull(instance, nameof(instance));
 
-        if (instance_type.FullName!.StartsWith("System."))
-            throw new ArgumentException("Cannot create a type descriptor for a system type");
+        var concrete_type = instance.GetType();
 
-        if (!interface_type.IsInterface)
-            throw new ArgumentException("The Interface type must be an interface");
+        if (!concrete_type.IsClass)
+            throw new ArgumentException("Type must be a class");
 
-        if (!instance_type.GetInterfaces().Contains(interface_type))
-            throw new ArgumentException("The instance type must implement the interface type");
+        if (concrete_type.IsAbstract)
+            throw new ArgumentException("Type may not be abstract");
 
-        InterfaceType = interface_type;
-        InstanceType = instance_type;
-        Lifetime = lifetime;
+        if (concrete_type.GetMethods().Any(m => m.Name == "<Clone>$"))
+            throw new ArgumentException("Type may not be a record");
+
+        if (concrete_type.FullName!.StartsWith("System."))
+            throw new ArgumentException("Type may not be a system type");
+
+        ConcreteType = concrete_type;
+        Instance = instance;
+        Lifetime = Inject.Lifetime.Singleton;
+    }
+
+    public ITypeDescriptor As<TInterface>()
+    {
+        if (InterfaceType != null)
+            throw new InvalidOperationException("Type already has an interface");
+
+        if (!typeof(TInterface).IsInterface)
+            throw new ArgumentException("Type must be an interface");
+
+        if (!ConcreteType!.GetInterfaces().Contains(typeof(TInterface)))
+            throw new ArgumentException("The instance type must implement this interface");
+
+        InterfaceType = typeof(TInterface);
+
+        return this;
+    }
+
+    public ITypeDescriptor AsSingleton()
+    {
+        if (Lifetime != null)
+            throw new InvalidOperationException("Type already has a lifetime");
+
+        Lifetime = Inject.Lifetime.Singleton;
+
+        return this;
+    }
+
+    public ITypeDescriptor AsTransient()
+    {
+        if (Lifetime != null)
+            throw new InvalidOperationException("Type already has a lifetime");
+
+        if (Instance != null)
+            throw new InvalidOperationException("Transient types may not have an instance");
+
+        Lifetime = Inject.Lifetime.Transient;
+
+        return this;
+    }
+
+    public ITypeDescriptor WithName(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            throw new ArgumentException("Name may not be null or empty");
+
+        if (Name != null)
+            throw new InvalidOperationException("Type already has a name");
+
+        Name = name;
+
+        return this;
+    }
+
+    public ITypeDescriptor WithInstance(object instance)
+    {
+        if (Instance != null)
+            throw new InvalidOperationException("Type already has an instance");
+
+        if (Lifetime == Inject.Lifetime.Transient)
+            throw new InvalidOperationException("Transient types may not have an instance");
+
+        if (ConcreteType != instance.GetType())
+            throw new ArgumentException("Instance must be of the same type as the concrete type");
+
+        Instance = instance;
+        Lifetime = Inject.Lifetime.Singleton;
+
+        return this;
     }
 }

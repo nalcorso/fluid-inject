@@ -1,196 +1,193 @@
 ﻿// Copyright (c) 2022, Nick Alcorso <nalcorso@gmail.com>
 
+using System.Linq.Expressions;
+using System.Reflection;
+using Fluid.Inject.Extensions;
+
 namespace Fluid.Inject;
 
 public class Container : IContainer
 {
-    private readonly List<TypeDescriptor> _registry = new();
+    private readonly List<TypeDescriptor> _types = new();
 
-    public bool Has(Type type)
+    internal IEnumerable<TypeDescriptor> Types => _types;
+
+    public ITypeDescriptor Add<T>()
     {
-        return _registry.Any(x => (x.InterfaceType == type) || (x.InstanceType == type));
+        var result = new TypeDescriptor(typeof(T));
+
+        _types.Add(result);
+
+        return result;
     }
 
-    public bool Has(Type interface_type, Type instance_type)
+    public ITypeDescriptor Add(object instance)
     {
-        return _registry.Any(x => (x.InterfaceType == interface_type) || (x.InstanceType == instance_type));
+        var result = new TypeDescriptor(instance);
+
+        _types.Add(result);
+
+        return result;
     }
 
-    public IContainer AddSingleton<T>() where T : class
+    public T Get<T>()
     {
-        if (Has(typeof(T)))
-            throw new ArgumentException($"InstanceType {typeof(T)} is already registered.");
-
-        _registry.Add(new TypeDescriptor(typeof(T), TypeLifetime.Singleton));
-
-        return this;
+        return (T)Resolve(typeof(T));
     }
 
-    public IContainer AddSingleton<I, T>() where I : class where T : class, I
-    {
-        if (Has(typeof(I), typeof(T)))
-            throw new ArgumentException($"InterfaceType {typeof(I)} or InstanceType {typeof(T)} is already registered.");
-
-        _registry.Add(new TypeDescriptor(typeof(I), typeof(T), TypeLifetime.Singleton));
-
-        return this;
-    }
-
-    public IContainer AddTransient<T>() where T : class
-    {
-        if (Has(typeof(T)))
-            throw new ArgumentException($"InstanceType {typeof(T)} is already registered.");
-
-        _registry.Add(new TypeDescriptor(typeof(T), TypeLifetime.Transient));
-
-        return this;
-    }
-
-    public IContainer AddTransient<I, T>() where I : class where T : class, I
-    {
-        if (Has(typeof(I), typeof(T)))
-            throw new ArgumentException($"InterfaceType {typeof(I)} or InstanceType {typeof(T)} is already registered.");
-
-        _registry.Add(new TypeDescriptor(typeof(I), typeof(T), TypeLifetime.Transient));
-
-        return this;
-    }
-
-    public IContainer AddNamedSingleton<T>(string name) where T : class
+    public T Get<T>(string name)
     {
         throw new NotImplementedException();
     }
 
-    public IContainer AddNamedSingleton<I, T>(string name) where I : class where T : class, I
+    private bool CanResolveType(Type type)
     {
-        throw new NotImplementedException();
-    }
-
-    public IContainer AddNamedSingleton<T>(string name, T instance) where T : class
-    {
-        throw new NotImplementedException();
-    }
-
-    public IContainer AddNamedTransient<T>(string name) where T : class
-    {
-        throw new NotImplementedException();
-    }
-
-    public IContainer AddNamedTransient<I, T>(string name) where I : class where T : class, I
-    {
-        throw new NotImplementedException();
-    }
-
-    public T Get<T>() where T : class
-    {
-        //FIXME - Interface Types Map to Concrete Types & Concrete Types Map Directly. The two should be separated - perhaps a dictionary<InterfaceType, ConcreteType>?
-
-        var descriptor = _registry.FirstOrDefault(d => (d.InterfaceType == typeof(T)) || (d.InstanceType == typeof(T)));
-
-        if (descriptor is null)
-            throw new TypeNotRegisteredException(typeof(T));
-
-        if (descriptor.Instance is not null)
-            return (T)descriptor.Instance;
-
-        return (T)InstantiateType(descriptor);
-    }
-
-    public IContainer AddSingleton<T>(T instance) where T : class
-    {
-        ArgumentNullException.ThrowIfNull(instance, nameof(instance));
-
-        if (Has(instance.GetType()))
-            throw new ArgumentException($"InstanceType {typeof(T)} is already registered.");
-
-        if (typeof(T).IsInterface)
-            _registry.Add(new TypeDescriptor(typeof(T), instance, TypeLifetime.Singleton));
-        else
-            _registry.Add(new TypeDescriptor(instance, TypeLifetime.Singleton));
-
-        return this;
-    }
-
-    private bool CanInstantiateType(Type type)
-    {
-        ArgumentNullException.ThrowIfNull(type);
-
-        if ((type == typeof(Container)) || (type == typeof(IContainer)))
+        if ((type == typeof(IContainer)) || (type == typeof(Container)))
             return true;
 
-        if (_registry.All(d => (d.InterfaceType != type) && (d.InstanceType != type)))
-            return false;
+        if (type.IsDelegate() && type.DeclaringType is not null)
+            return CanResolveType(type.DeclaringType);
 
-        //FIXME - We need to test whether it is necessary to have this short circuit
-        //if (type.GetConstructors().Any(c => c.GetParameters().Length == 0))
-        //    return true;
+        if (!_types.Any(t => (t.ConcreteType == type) || (t.InterfaceType == type)))
+            return false;
 
         if (type.GetConstructors().Length == 0)
             return true;
 
-        return type.GetConstructors().Any(c => c.GetParameters().All(p => CanInstantiateType(p.ParameterType)));
+        // TODO - Check and prevent circular dependencies
+        return type.GetConstructors().Select(CanResolveParametersForConstructor).Any();
     }
 
-    private object InstantiateType(TypeDescriptor descriptor)
+    private bool CanResolveParametersForConstructor(ConstructorInfo constructor_info)
     {
-        ArgumentNullException.ThrowIfNull(descriptor);
+        if (constructor_info.GetParameters().Length == 0)
+            return true;
 
-        if (!CanInstantiateType(descriptor.InstanceType))
+        //TODO - Ultimately change this to a simpler LINQ statement All. Long form is for debugging.
+        foreach (var parameter_info in constructor_info.GetParameters())
         {
-            if (descriptor.InstanceType.IsAbstract || descriptor.InstanceType.IsInterface || descriptor.InstanceType.IsValueType)
-                throw new ArgumentException($"Type {descriptor.InstanceType.Name} is abstract, interface or value type");
-
-            //FIXME - We want to generate some kind of dependency graph so that we can easily determine missing dependecies and accurately report them.
-            //var missing_types = _registry.Where(d => d.InstanceType != descriptor.InstanceType).Select(d => d.InstanceType).ToList();
-            //if (missing_types.Any())
-            //    throw new TypeNotRegisteredException(missing_types);
-
-            //FIXME - We want to know if a mismatch may have occurred when registering AddTransient<Dependency> when we wanted AddTransient<Interface, Dependency>
-
-            throw new ArgumentException($"No constructor for {descriptor.InstanceType.Name} found that can be used");
+            if (!CanResolveType(parameter_info.ParameterType))
+                return false;
         }
 
-        //FIXME - Constructor selection will change to allow for more concrete tie breaking of constructor selection
-        var constructor = descriptor.InstanceType.GetConstructors().Where(c => c.GetParameters().All(p => CanInstantiateType(p.ParameterType))).OrderByDescending(c => c.GetParameters().Length).FirstOrDefault();
+        return true;
+    }
 
-        if (constructor is null)
-            throw new Exception("Not sure we should be here?!?!");
+    private bool CanResolveParametersForConstructor(ConstructorInfo constructor_info, IReadOnlyCollection<ParameterInfo> parameters)
+    {
+        if (constructor_info.GetParameters().Length < parameters.Count)
+            return false;
 
-        object? result = null;
+        foreach (var parameter in parameters)
+        {
+            if (constructor_info.GetParameters()[parameter.Position].ParameterType != parameter.ParameterType)
+                return false;
 
-        var parameters = constructor.GetParameters();
+            if (constructor_info.GetParameters()[parameter.Position].Name != parameter.Name)
+                return false;
+        }
+
+        foreach (var parameter_info in constructor_info.GetParameters().Skip(parameters.Count))
+        {
+            if (!CanResolveType(parameter_info.ParameterType))
+                return false;
+        }
+
+        return true;
+    }
+
+    private object BuildFactoryExpression(Type type)
+    {
+        // Dynamically build an Expression Tree for the following factory
+        // (param1, param2) => new ConcreteType(param1, param2, service1)
+
+        var delegate_type = type;
+
+        var method = delegate_type.GetMethod("Invoke");
+        var delegate_parameters = new List<ParameterExpression>();
+
+        foreach (var param in method.GetParameters())
+        {
+            delegate_parameters.Add(Expression.Parameter(param.ParameterType, param.Name));
+        }
+
+        var object_type = delegate_type.DeclaringType;
+        var best_constructor = object_type.GetConstructors().Where(c => CanResolveParametersForConstructor(c, method.GetParameters())).OrderByDescending(c => c.GetParameters().Length).FirstOrDefault();
+
+        if (best_constructor is null)
+            throw new InvalidOperationException("Could not locate a suitable constructor");
+
+        var constructor_parameters = new List<Expression>();
+
+        foreach (var param in delegate_parameters)
+        {
+            constructor_parameters.Add(param);
+        }
+
+        foreach (var param in best_constructor.GetParameters().Skip(method.GetParameters().Length))
+        {
+            // TODO - Ensure we are happy with the lifetime and reference counting of the dependency object we are creating here.
+            // This is a bit of a hack to get around the fact that we don't have a container to resolve the dependencies.
+            // We should probably add a container to the Resolver class and use it to resolve the dependencies.
+            // This will allow us to use the container to resolve the dependencies and also to manage the lifetime of the dependency objects.
+            //var dependency = Resolve(param.ParameterType);
+            //constructor_parameters.Add(Expression.Constant(dependency));
+
+            var resolved_parameter = Expression.Call(Expression.Constant(this), nameof(Get), new[] {param.ParameterType});
+            constructor_parameters.Add(resolved_parameter);
+        }
+
+        var constructor = Expression.New(best_constructor, constructor_parameters);
+
+        return Expression.Lambda(delegate_type, constructor, delegate_parameters).Compile();
+    }
+
+    private object Resolve(Type type)
+    {
+        if (type.IsDelegate())
+            return BuildFactoryExpression(type);
+
+        if (!CanResolveType(type))
+            throw new ArgumentException("Can not resolve type");
+
+        if ((type == typeof(IContainer)) || (type == typeof(Container)))
+            return this;
+
+        var descriptor = _types.First(t => (t.ConcreteType == type) || (t.InterfaceType == type));
+
+        if (descriptor is null)
+            throw new TypeNotRegisteredException(type);
+
+        if (descriptor.Instance is not null)
+            return descriptor.Instance;
+
+        if (type.GetConstructors().Length == 0)
+            return Activator.CreateInstance(type) ?? throw new InvalidOperationException("Could not create instance of type");
+
+        var best_constructor = type.GetConstructors().Where(CanResolveParametersForConstructor).OrderByDescending(c => c.GetParameters().Length).FirstOrDefault();
+
+        if (best_constructor is null)
+            throw new InvalidOperationException("Could not locate a suitable constructor");
+
+        var parameters = best_constructor.GetParameters();
 
         if (parameters.Length == 0)
+            return Activator.CreateInstance(type) ?? throw new InvalidOperationException("Could not create instance of type");
+
+        var args = new object[parameters.Length];
+
+        for (var i = 0; i < parameters.Length; i++)
         {
-            result = Activator.CreateInstance(descriptor.InstanceType);
-        }
-        else
-        {
-            var args = new object[parameters.Length];
-
-            for (var i = 0; i < parameters.Length; i++)
-            {
-                var parameter = parameters[i];
-
-                var arg_descriptor = _registry.Find(d => (d.InstanceType == parameter.ParameterType) || (d.InterfaceType == parameter.ParameterType));
-
-                if ((parameter.ParameterType == typeof(IContainer)) || (parameter.ParameterType == typeof(Container)))
-                    args[i] = this;
-                else if (arg_descriptor is null)
-                    throw new TypeNotRegisteredException(parameter.ParameterType);
-                else
-                    args[i] = InstantiateType(arg_descriptor);
-            }
-
-            result = Activator.CreateInstance(descriptor.InstanceType, args);
+            args[i] = Resolve(parameters[i].ParameterType);
         }
 
-        if (result is null)
-            throw new Exception($"Failed to create instance of type {descriptor.InstanceType}");
+        var instance = Activator.CreateInstance(type, args) ?? throw new InvalidOperationException("Could not create instance of type");
 
-        if (descriptor.Lifetime == TypeLifetime.Singleton)
-            descriptor.Instance = result;
+        if (descriptor.Lifetime == Lifetime.Singleton)
 
-        return result;
+            // FIXME - We probably don't need to use the public interface of TypeDescriptor to set the instance.
+            descriptor.WithInstance(instance);
+
+        return instance;
     }
 }
