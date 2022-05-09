@@ -2,6 +2,7 @@
 
 using System.Linq.Expressions;
 using System.Reflection;
+using Fluid.Inject.Exceptions;
 using Fluid.Inject.Extensions;
 
 namespace Fluid.Inject;
@@ -112,6 +113,10 @@ public class Container : IContainer
         }
 
         var object_type = delegate_type.DeclaringType;
+
+        if (object_type is null)
+            throw new InvalidOperationException("Unable to resolve declaring type for delegate");
+
         var best_constructor = object_type.GetConstructors().Where(c => CanResolveParametersForConstructor(c, method.GetParameters())).OrderByDescending(c => c.GetParameters().Length).FirstOrDefault();
 
         if (best_constructor is null)
@@ -126,13 +131,6 @@ public class Container : IContainer
 
         foreach (var param in best_constructor.GetParameters().Skip(method.GetParameters().Length))
         {
-            // TODO - Ensure we are happy with the lifetime and reference counting of the dependency object we are creating here.
-            // This is a bit of a hack to get around the fact that we don't have a container to resolve the dependencies.
-            // We should probably add a container to the Resolver class and use it to resolve the dependencies.
-            // This will allow us to use the container to resolve the dependencies and also to manage the lifetime of the dependency objects.
-            //var dependency = Resolve(param.ParameterType);
-            //constructor_parameters.Add(Expression.Constant(dependency));
-
             var resolved_parameter = Expression.Call(Expression.Constant(this), nameof(Get), new[] {param.ParameterType});
             constructor_parameters.Add(resolved_parameter);
         }
@@ -155,16 +153,23 @@ public class Container : IContainer
 
         var descriptor = _types.First(t => (t.ConcreteType == type) || (t.InterfaceType == type));
 
-        if (descriptor is null)
+        if (descriptor is null || descriptor.ConcreteType is null)
             throw new TypeNotRegisteredException(type);
 
         if (descriptor.Instance is not null)
             return descriptor.Instance;
 
         if (type.GetConstructors().Length == 0)
-            return Activator.CreateInstance(type) ?? throw new InvalidOperationException("Could not create instance of type");
+        {
+            var new_instance = Activator.CreateInstance(descriptor.ConcreteType) ?? throw new InvalidOperationException("Could not create instance of type");
 
-        var best_constructor = type.GetConstructors().Where(CanResolveParametersForConstructor).OrderByDescending(c => c.GetParameters().Length).FirstOrDefault();
+            if (descriptor.Lifetime == Lifetime.Singleton)
+                descriptor.WithInstance(new_instance);
+
+            return new_instance;
+        }
+
+        var best_constructor = descriptor.ConcreteType.GetConstructors().Where(CanResolveParametersForConstructor).OrderByDescending(c => c.GetParameters().Length).FirstOrDefault();
 
         if (best_constructor is null)
             throw new InvalidOperationException("Could not locate a suitable constructor");
@@ -172,7 +177,14 @@ public class Container : IContainer
         var parameters = best_constructor.GetParameters();
 
         if (parameters.Length == 0)
-            return Activator.CreateInstance(type) ?? throw new InvalidOperationException("Could not create instance of type");
+        {
+            var new_instance = Activator.CreateInstance(descriptor.ConcreteType) ?? throw new InvalidOperationException("Could not create instance of type");
+
+            if (descriptor.Lifetime == Lifetime.Singleton)
+                descriptor.WithInstance(new_instance);
+
+            return new_instance;
+        }
 
         var args = new object[parameters.Length];
 
@@ -181,7 +193,7 @@ public class Container : IContainer
             args[i] = Resolve(parameters[i].ParameterType);
         }
 
-        var instance = Activator.CreateInstance(type, args) ?? throw new InvalidOperationException("Could not create instance of type");
+        var instance = Activator.CreateInstance(descriptor.ConcreteType, args) ?? throw new InvalidOperationException("Could not create instance of type");
 
         if (descriptor.Lifetime == Lifetime.Singleton)
 
