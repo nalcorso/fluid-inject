@@ -216,6 +216,7 @@ Project Link: [https://github.com/nalcorso/fluid-inject](https://github.com/nalc
 ## Acknowledgments
 
 * [Autofac](https://autofac.org)
+* [Best-README-Template](https://github.com/othneildrew/Best-README-Template)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
