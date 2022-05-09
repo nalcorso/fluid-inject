@@ -37,3 +37,24 @@ public class MyService
         _items.Add(_my_object_factory(index, name));
     }
 }
+
+public interface ICommand
+{
+    void Execute();
+}
+
+public class TestCommand1 : ICommand
+{
+    public void Execute()
+    {
+        Console.WriteLine("TestCommand1");
+    }
+}
+
+public class TestCommand2 : ICommand
+{
+    public void Execute()
+    {
+        Console.WriteLine("TestCommand2");
+    }
+}
