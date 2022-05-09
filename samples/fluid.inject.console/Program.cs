@@ -23,9 +23,20 @@ var my_object = my_object_factory(1, "ABC");
 var my_service = container.Get<MyService>();
 my_service.Add(1, "ABC");
 
+// The following features have not been implemented in the API yet.
+
 // Example - Resolve a named dependency.
 //var my_named_service = container.Get<MyService>("named");
 
+// Example - Add assembly as Module. Calls the assembly's Register / Unregister method.
+//var assembly = typeof(MyService).Assembly;
+//container.AddModule(assembly);
+//container.RemoveModule(assembly);
+
+// Example - Scan assemblies for all dependencies matching predicate.
+//var assembly = typeof(MyService).Assembly;
+//container.AddFrom(assembly).Where(t => t.FullName.EndsWith("ViewModel")).AsTransient();
+
 // Example - Scan assembly for all services matching an interface
 //var assembly = typeof(MyService).Assembly;
-//container.AddFromAssembly<IService>(assembly);
+//container.AddFrom(assembly).As<IMyService>();
