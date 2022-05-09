@@ -15,6 +15,7 @@ public interface ITypeDescriptor
     ITypeDescriptor AsSingleton();
     ITypeDescriptor AsTransient();
     ITypeDescriptor WithName(string name);
+    ITypeDescriptor WithInstance(object instance);
 }
 
 public class TypeDescriptor : ITypeDescriptor
@@ -52,9 +53,6 @@ public class TypeDescriptor : ITypeDescriptor
 
         if (!concrete_type.IsClass)
             throw new ArgumentException("Type must be a class");
-
-        if (concrete_type.IsAbstract)
-            throw new ArgumentException("Type may not be abstract");
 
         if (concrete_type.GetMethods().Any(m => m.Name == "<Clone>$"))
             throw new ArgumentException("Type may not be a record");
@@ -95,11 +93,11 @@ public class TypeDescriptor : ITypeDescriptor
 
     public ITypeDescriptor AsTransient()
     {
-        if (Lifetime != null)
-            throw new InvalidOperationException("Type already has a lifetime");
-
         if (Instance != null)
             throw new InvalidOperationException("Transient types may not have an instance");
+
+        if (Lifetime != null)
+            throw new InvalidOperationException("Type already has a lifetime");
 
         Lifetime = Inject.Lifetime.Transient;
 
@@ -121,6 +119,9 @@ public class TypeDescriptor : ITypeDescriptor
 
     public ITypeDescriptor WithInstance(object instance)
     {
+        if (instance == null)
+            throw new ArgumentNullException(nameof(instance));
+
         if (Instance != null)
             throw new InvalidOperationException("Type already has an instance");
 
