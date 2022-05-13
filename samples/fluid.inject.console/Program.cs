@@ -34,6 +34,12 @@ test_command2.Execute();
 
 // The following features have not been implemented in the API yet.
 
+// Example - Lazy Resolution of a Service (should warn on singleton probably).
+//var lazy_service = container.Get<ILazy<MyBaseService>>();
+
+// Example - Resolve All instances of a Service
+//var all_commands = container.Get<IEnumerable<ICommand>>();
+
 // Example - Add assembly as Module. Calls the assembly's Register / Unregister method.
 //var assembly = typeof(MyService).Assembly;
 //container.AddModule(assembly);

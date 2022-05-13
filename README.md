@@ -163,6 +163,8 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 ## Roadmap
 
 - [ ] Add Support for Named Services
+- [ ] Add Support for Deferred or Lazy Resolution eg Get<ILazy<MyService>>();
+- [ ] Add Support for Returning multiple results Get<IEnumerable<ICommand>>();
 - [ ] Add Support for Automatic Scanning for Services in an Assembly
     - [ ] Simple Service Scanning (by Interface)
 	- [ ] Service Scanning by Predicate eg. s => s.Type.Name.EndsWith("ViewModel");
