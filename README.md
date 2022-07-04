@@ -1,29 +1,11 @@
 <div id="top"></div>
-<!--
-*** Thanks for checking out the Best-README-Template. If you have a suggestion
-*** that would make this better, please fork the repo and create a pull request
-*** or simply open an issue with the tag "enhancement".
-*** Don't forget to give the project a star!
-*** Thanks again! Now go create something AMAZING! :D
--->
-
-
 
 <!-- PROJECT SHIELDS -->
-<!--
-*** I'm using markdown "reference style" links for readability.
-*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
-*** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
-*** https://www.markdownguide.org/basic-syntax/#reference-style-links
--->
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
-
-
 
 <!-- PROJECT LOGO -->
 <!--
@@ -36,7 +18,7 @@
 
 <h3 align="center">FLUiD Inject</h3>
 
-  <p align="center">
+<p style="text-align: center">
     A very simple and lightweight injection framework for .NET
     <br />
     <a href="https://github.com/nalcorso/fluid-inject"><strong>Explore the docs »</strong></a>
@@ -47,19 +29,16 @@
     <a href="https://github.com/nalcorso/fluid-inject/issues">Report Bug</a>
     ·
     <a href="https://github.com/nalcorso/fluid-inject/issues">Request Feature</a>
-  </p>
-</div>
+</p>
 
-
-
-<!-- TABLE OF CONTENTS -->
-<!--
+<!--TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
   <ol>
     <li>
       <a href="#about-the-project">About The Project</a>
       <ul>
+        <li><a href="#alternative-projects">Alternative Projects</a></li>
         <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
@@ -78,7 +57,6 @@
     <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
--->
 
 
 <!-- ABOUT THE PROJECT -->
@@ -90,39 +68,29 @@ This project is a simple injection framework for .NET. It was designed to learn 
 There is no legitimate reason to use this in any kind of production environment. This project is worse then other DI frameworks in every way!
 It is slower, uses more memory, has less features.
 
-<p align="right">(<a href="#top">back to top</a>)</p>
+<p style="text-align: right">(<a href="#top">back to top</a>)</p>
 
 ### Mature DI Frameworks you should use instead
 * [AutoFac](https://autofac.org)
 * [Microsoft.Extensions.DependencyInjection](https://dotnet.microsoft.com/en-us/)
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
+<p style="text-align: right">(<a href="#top">back to top</a>)</p>
 
 ### Built With
 
 * [.NET](https://dotnet.microsoft.com/en-us/)
 * [C#](https://docs.microsoft.com/en-us/dotnet/csharp/)
 
-<p align="right">(<a href="#top">back to top</a>)</p>
+<p style="text-align: right">(<a href="#top">back to top</a>)</p>
 
-
-
-<!-- GETTING STARTED -->
 ## Getting Started
 
 This is an example of how you may give instructions on setting up your project locally.
 To get a local copy up and running follow these simple example steps.
 
-<!--
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
--->
+FLUiD Inject is currently built against .NET 6 and C# 10
 
 ### Installation
 
@@ -137,8 +105,7 @@ This is an example of how to list things you need to use the software and how to
    using Fluid.Inject;
    ```
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
+<p style="text-align: right">(<a href="#top">back to top</a>)</p>
 
 
 <!-- USAGE EXAMPLES -->
@@ -155,26 +122,25 @@ var my_service = container.Get<MyService>();
 
 _For more examples, please refer to the [Documentation](https://example.com)_
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
+<p style="text-align: right">(<a href="#top">back to top</a>)</p>
 
 
 <!-- ROADMAP -->
 ## Roadmap
 
+- [ ] Add Support for Resolution of Open Generics
 - [ ] Add Support for Named Services
 - [ ] Add Support for Deferred or Lazy Resolution eg Get<ILazy<MyService>>();
 - [ ] Add Support for Returning multiple results Get<IEnumerable<ICommand>>();
 - [ ] Add Support for Automatic Scanning for Services in an Assembly
     - [ ] Simple Service Scanning (by Interface)
-	- [ ] Service Scanning by Predicate eg. s => s.Type.Name.EndsWith("ViewModel");
+    - [ ] Service Scanning by Predicate eg. s => s.Type.Name.EndsWith("ViewModel");
     - [ ] Module Loading with self registration / unregistration.
 - [ ] Formalise resolution model (eg Order of precedence of objects / constructors)
 
 See the [open issues](https://github.com/nalcorso/fluid-inject/issues) for a full list of proposed features (and known issues).
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
+<p style="text-align: right">(<a href="#top">back to top</a>)</p>
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -190,8 +156,7 @@ Don't forget to give the project a star! Thanks again!
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
+<p style="text-align: right">(<a href="#top">back to top</a>)</p>
 
 
 <!-- LICENSE -->
@@ -199,8 +164,7 @@ Don't forget to give the project a star! Thanks again!
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
+<p style="text-align: right">(<a href="#top">back to top</a>)</p>
 
 
 <!-- CONTACT -->
@@ -210,8 +174,7 @@ Nicholas Alcorso - [@nalcorso](https://twitter.com/nalcorso) - nalcorso@gmail.co
 
 Project Link: [https://github.com/nalcorso/fluid-inject](https://github.com/nalcorso/fluid-inject)
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
+<p style="text-align: right">(<a href="#top">back to top</a>)</p>
 
 
 <!-- ACKNOWLEDGMENTS -->
@@ -220,8 +183,7 @@ Project Link: [https://github.com/nalcorso/fluid-inject](https://github.com/nalc
 * [Autofac](https://autofac.org)
 * [Best-README-Template](https://github.com/othneildrew/Best-README-Template)
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
+<p style="text-align: right">(<a href="#top">back to top</a>)</p>
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
