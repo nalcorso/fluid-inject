@@ -65,6 +65,22 @@ public class TypeDescriptor : ITypeDescriptor
         return this;
     }
 
+    public ITypeDescriptor As(Type type)
+    {
+        if (InterfaceType != null)
+            throw new InvalidOperationException("Type already has an interface");
+
+        if (!type.IsInterface)
+            throw new ArgumentException("Type must be an interface");
+
+        if (ConcreteType!.GetInterfaces().All(t => t.GUID != type.GUID))
+            throw new ArgumentException("The instance type must implement this interface");
+
+        InterfaceType = type;
+
+        return this;    
+    }
+
     public ITypeDescriptor AsSingleton()
     {
         if (Lifetime != null)

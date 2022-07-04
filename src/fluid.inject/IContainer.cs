@@ -6,7 +6,9 @@ public interface IContainer
 {
     ITypeDescriptor Add<T>();
     ITypeDescriptor Add(object instance);
+    ITypeDescriptor Add(Type type);
 
     T Get<T>();
     T Get<T>(string name);
+    
 }

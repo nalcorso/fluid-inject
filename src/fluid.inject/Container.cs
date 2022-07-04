@@ -31,6 +31,15 @@ public class Container : IContainer
         return result;
     }
 
+    public ITypeDescriptor Add(Type type)
+    {
+        var result = new TypeDescriptor(type);
+
+        _types.Add(result);
+
+        return result;
+    }
+
     public T Get<T>()
     {
         return (T)Resolve(typeof(T), null);
@@ -46,6 +55,9 @@ public class Container : IContainer
         if ((type == typeof(IContainer)) || (type == typeof(Container)))
             return true;
 
+        if (type.IsGenericType && !type.IsGenericTypeDefinition)
+            return CanResolveType(type.GetGenericTypeDefinition());
+
         if (type.IsDelegate() && type.DeclaringType is not null)
             return CanResolveType(type.DeclaringType);
 
@@ -55,7 +67,7 @@ public class Container : IContainer
         if (type.GetConstructors().Length == 0)
             return true;
 
-        // TODO - Check and prevent circular dependencies
+        // FIXME - Check and prevent circular dependencies
         return type.GetConstructors().Select(CanResolveParametersForConstructor).Any();
     }
 
@@ -64,7 +76,7 @@ public class Container : IContainer
         if (constructor_info.GetParameters().Length == 0)
             return true;
 
-        //TODO - Ultimately change this to a simpler LINQ statement All. Long form is for debugging.
+        // FIXME - Ultimately change this to a simpler LINQ statement All. Long form is for debugging.
         foreach (var parameter_info in constructor_info.GetParameters())
         {
             if (!CanResolveType(parameter_info.ParameterType))
@@ -150,12 +162,30 @@ public class Container : IContainer
             return BuildFactoryExpression(type);
 
         if (!CanResolveType(type))
-            throw new ArgumentException("Can not resolve type");
+            throw new ArgumentException("Can not resolve type {0}", type.FullName);
 
         if ((type == typeof(IContainer)) || (type == typeof(Container)))
             return this;
 
-        var descriptor = name is null ? _types.First(t => (t.ConcreteType == type) || (t.InterfaceType == type)) : _types.First(t => ((t.ConcreteType == type) || (t.InterfaceType == type)) && (t.Name == name));
+        TypeDescriptor? descriptor = null;
+
+        if (type.IsGenericType)
+        {
+            var generic_type_definition = type.GetGenericTypeDefinition();
+            descriptor = _types.First(t => (t.ConcreteType == generic_type_definition) || (t.InterfaceType == generic_type_definition));
+        }
+        else
+        {
+            if (name is null)
+            {
+                descriptor = _types.First(t => (t.ConcreteType == type) || (t.InterfaceType == type));
+            }
+            else
+            {
+                descriptor = _types.First(t =>
+                    ((t.ConcreteType == type) || (t.InterfaceType == type)) && (t.Name == name));
+            }
+        }
 
         if (descriptor is null || descriptor.ConcreteType is null)
             throw new TypeNotRegisteredException(type);
@@ -163,7 +193,7 @@ public class Container : IContainer
         if (descriptor.Instance is not null)
             return descriptor.Instance;
 
-        if (type.GetConstructors().Length == 0)
+        if (descriptor.ConcreteType.GetConstructors().Length == 0)
         {
             var new_instance = Activator.CreateInstance(descriptor.ConcreteType) ?? throw new InvalidOperationException("Could not create instance of type");
 
@@ -176,13 +206,26 @@ public class Container : IContainer
         var best_constructor = descriptor.ConcreteType.GetConstructors().Where(CanResolveParametersForConstructor).OrderByDescending(c => c.GetParameters().Length).FirstOrDefault();
 
         if (best_constructor is null)
-            throw new InvalidOperationException("Could not locate a suitable constructor");
+            throw new InvalidOperationException($"Could not locate a suitable constructor for type {descriptor.ConcreteType.FullName}");
 
         var parameters = best_constructor.GetParameters();
 
         if (parameters.Length == 0)
         {
-            var new_instance = Activator.CreateInstance(descriptor.ConcreteType) ?? throw new InvalidOperationException("Could not create instance of type");
+            object? new_instance = null;
+            
+            if (type.IsGenericType)
+            {
+                Type constructedType = descriptor.ConcreteType.MakeGenericType(type.GenericTypeArguments);
+                new_instance = Activator.CreateInstance(constructedType);
+            }
+            else
+            {
+                new_instance = Activator.CreateInstance(descriptor.ConcreteType);
+            }
+
+            if (new_instance is null)
+                throw new InvalidOperationException("Could not create instance of type");
 
             if (descriptor.Lifetime == Lifetime.Singleton)
                 _ = descriptor.WithInstance(new_instance);
@@ -197,7 +240,19 @@ public class Container : IContainer
             args[i] = Resolve(parameters[i].ParameterType, null);
         }
 
-        var instance = Activator.CreateInstance(descriptor.ConcreteType, args) ?? throw new InvalidOperationException("Could not create instance of type");
+        object? instance = null;
+
+        if (type.IsGenericType)
+        {
+            Type constructedType = descriptor.ConcreteType.MakeGenericType(type.GenericTypeArguments);
+            instance = Activator.CreateInstance(constructedType, args);
+        }
+        else
+        {
+            instance = Activator.CreateInstance(descriptor.ConcreteType, args);
+        }
+        
+        if (instance is null) throw new InvalidOperationException("Could not create instance of type");
 
         if (descriptor.Lifetime == Lifetime.Singleton)
 
