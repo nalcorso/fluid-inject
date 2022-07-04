@@ -32,6 +32,18 @@ test_command1.Execute();
 var test_command2 = container.Get<ICommand>("Test2Command");
 test_command2.Execute();
 
+// Example - Resolve an open generic
+container.Add(typeof(GenericService<>))
+    .As(typeof(IGenericService<>))
+    .AsTransient();
+
+var my_generic1 = container.Get<GenericService<int>>();
+my_generic1.Execute();
+
+var my_generic2 = container.Get<IGenericService<string>>();
+my_generic2.Execute();
+
+
 // The following features have not been implemented in the API yet.
 
 // Example - Lazy Resolution of a Service (should warn on singleton probably).

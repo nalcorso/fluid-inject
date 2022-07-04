@@ -38,6 +38,19 @@ public class MyService
     }
 }
 
+public interface IGenericService<T>
+{
+    void Execute();
+}
+
+public class GenericService<T> : IGenericService<T>
+{
+    public void Execute()
+    {
+        Console.WriteLine("GenericService Type is: {0}", typeof(T).Name);
+    }
+}
+
 public interface ICommand
 {
     void Execute();
